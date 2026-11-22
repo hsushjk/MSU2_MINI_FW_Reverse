@@ -1,0 +1,8 @@
+*.hex
+*.bin
+*.pdf
+*.jpg
+*.png
+work/
+dump*/
+*.sla
