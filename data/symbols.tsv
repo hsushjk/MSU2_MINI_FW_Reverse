@@ -1,0 +1,166 @@
+# addr	name	module	note
+00000000	reset_entry	crt	jump to _start
+00000100	__riscv_save_13	lib	-msave-restore prologue helper
+00000108	__riscv_save_12	lib	-msave-restore prologue helper
+00000116	__riscv_save_8	lib	-msave-restore prologue helper
+00000130	__riscv_save_3	lib	-msave-restore prologue helper
+0000013C	__riscv_restore_1	lib	-msave-restore epilogue helper
+00000160	memset	lib	byte fill
+00000208	lut_get	lib	8-bit lookup table accessor
+00000238	memcpy6	lib	fixed 6-byte copy
+00000250	cmd_dispatch	cmd	host command dispatcher (6-byte record)
+00000584	reset_session	cmd	reset tick/state/ring pointers
+0000059A	main_loop	cmd	command + streaming loop
+00000A90	board_clocks_enable	uart	RCC AHB/APB clock enables for the board
+00000ABC	tim3_init	uart	TIM3 1 kHz tick setup
+00000B34	uart2_gpio_init	uart	USART2 pins
+00000C3A	usb_ep_flags_clear	uart	clear per-endpoint busy flags
+00000CC8	uart_dma_rx_setup	uart	DMA1 CH6/CH7 for USART2
+00000D74	uart_dma_reconfig	uart	
+00000DEA	usb_uart_reinit	uart	UART reconfiguration called from the USB ISR
+00000E48	vec_hardfault	usb	infinite loop
+00000E4C	TIM3_IRQHandler	usb	tick counter
+00000E7C	board_gpio_init	usb	GPIO clock + mode setup
+00000E94	usb_ep_init	usb	endpoint MOD/DMA setup
+00000F14	usb_ep_reset	usb	
+00000F56	usb_device_init	usb	USBFS clock, D+ pull-up, interrupts
+00000FD2	usb_ep_send	usb	write len/payload to an endpoint and arm it
+00001110	USBFS_IRQHandler	usb	USB device interrupt handler
+00001A66	flash_uid_to_record	flash	cache the 128-bit UID in the licence record
+00001A86	licence_check	flash	16-pair arithmetic check, destroys the record on failure
+00001B10	spi_xfer_byte	flash	blocking 8-bit SPI transfer (returns 0 on timeout)
+00001B66	flash_read_uid	flash	0x4B
+00001BC6	spi1_gpio_init	flash	SPI1 + CS + D/C pins (first copy)
+00001CFC	spi1_gpio_init2	flash	SPI1 + CS + D/C pins (second copy)
+00001E32	flash_read_status	flash	0x05
+00001E6C	flash_wait_busy	flash	poll BUSY, no timeout
+00001E7A	flash_write_enable	flash	0x06
+00001EA8	flash_read_id	flash	0x90
+00001F0A	flash_read_data	flash	0x03
+00001F80	flash_read_page	flash	0x03 by page number
+00001FF6	flash_read_security	flash	0x48
+00002060	flash_fast_read	flash	0x0B + DMA
+000020F8	flash_fast_read_dma	flash	0x0B + DMA, overlapping CPU expansion
+00002202	flash_page_program	flash	0x06 + 0x81 + 0x02
+00002306	flash_page_program2	flash	0x06 + 0x81 + 0x02 (second copy)
+000023BE	flash_page_erase	flash	0x06 + vendor 0x81
+00002412	flash_sector_erase	flash	0x06 + 0x20
+00002466	flash_block_erase	flash	0x06 + 0x52
+000024BA	flash_erase_page_n	flash	
+0000250E	flash_erase_range	flash	page/sector/block planner
+00002668	lcd_cs_dc	lcd	LCD chip select and D/C
+000026BE	lcd_write_cmd	lcd	command byte
+00002714	lcd_write_data8	lcd	data byte
+00002778	lcd_init	lcd	ST7735S init sequence
+00002A20	lcd_set_window	lcd	CASET/RASET/RAMWR
+00002A9C	lcd_blit_colour	lcd	RGB565 rectangle from flash page
+00002BCC	adc_init	lcd	ADC1 channel setup
+00002C58	adc_read	lcd	single conversion on a channel, averaged
+00002C9E	spi_dma_tx_init	draw	DMA1 CH3 (TX) -> SPI1
+00002CF4	spi_dma_rx_init	draw	DMA1 CH2 (RX) <- SPI1
+00002D48	dma_ring_init	draw	DMA1 CH8 memory-to-memory
+00002DA2	lcd_draw_glyph8	draw	8x8 text primitive
+00002E42	lcd_draw_text	draw	string with wrap
+00002E80	lcd_set_tile	draw	build the 256-byte pattern tile
+00002EA4	lcd_fill_rect	draw	window fill
+0000305A	lcd_draw_hline	draw	
+000030C6	lcd_stream	draw	stream a host-length buffer through SPI DMA
+00003148	lcd_stream_end	draw	end of stream
+00003180	lcd_send_pixels	draw	raw pixel writer
+000031C0	lcd_blit_colour_bg	draw	colour blit with background
+000033B8	lcd_image_with_bg	draw	background image + foreground
+0000367C	lcd_mono_image_a	draw	1-bit image expansion
+00003698	lcd_mono_image_b	draw	1-bit image expansion
+000036B8	lcd_mono_image	draw	1-bit image from a flash page
+000037D4	lcd_mono_image_mix	draw	1-bit image over a background page
+000039B4	main	main	application entry
+00003B32	SystemInit	boot	HSION + flash wait state
+00003B74	SystemCoreClockUpdate	boot	
+00003BB4	_start	boot	crt0: gp/sp, .data/.bss, CSRs, mret into main
+00003C3E	ADC_Init	boot	
+00003C94	ADC_Cmd	boot	
+00003CA4	ADC_GetConversionValue	boot	
+00003D5C	sub_3D5C	boot	
+00003D66	sub_3D66	boot	
+00003D72	GetChipID	boot	unique ID register
+00003D7C	DMA_DeInit	hal	
+00003E1E	DMA_Init	hal	per-channel CFGR/CNTR/PADDR/MADDR
+00003E56	DMA_Cmd	hal	
+00003E6A	DMA_GetFlagStatus	hal	
+00003E78	DMA_ClearFlag	hal	
+00003E80	GPIO_Init	hal	
+00003FEE	GPIO_SetBits	hal	
+00003FFC	GPIO_WriteBit	hal	
+00004010	write_once_flag	hal	write-only global at gp-0x77C
+00004016	PWR_SetPLS	hal	
+00004026	PWR_GetStatus	hal	
+00004034	pvd_probe	hal	brown-out/PVD strapping probe
+00004064	RCC_GetClocksFreq	hal	wrong clock model
+000040A2	RCC_AHBPeriphClockCmd	hal	
+000040C0	RCC_APB2PeriphClockCmd	hal	
+000040DE	RCC_APB1PeriphClockCmd	hal	
+000040FC	RCC_APB2PeriphResetCmd	hal	
+0000411A	RCC_APB1PeriphResetCmd	hal	
+00004138	SPI1_CTLR1_merge	hal	
+0000416A	SPI1_Cmd	hal	
+00004184	SPI1_CTLR1_write	hal	
+00004196	SPI1_SendData	hal	
+0000419A	SPI1_ReceiveData	hal	
+0000419E	SPI1_GetFlagStatus	hal	
+000041A8	sub_41A8	hal	
+00004202	SPI1_I2SCFGR?	hal	
+00004258	SPI1_GetFlagStatus2?	hal	
+00004270	spi_clear_bit	hal	
+00004282	spi_set_bit?	hal	
+0000428E	void_428e	hal	
+000042A6	void_42a6	hal	
+000042B2	USART_Init	hal	baud divisor from a broken PCLK1
+00004342	USART_Cmd	hal	
+00004358	USART_SendData8?	hal	
+0000436A	USART_SendData	hal	
+00004372	USART_GetFlagStatus	hal	
+0000437C	USART_ClearFlag	hal	
+00004388	Delay_Init	hal	loop calibration from SystemCoreClock
+000043B2	delay_cycles	hal	
+000043E8	Delay_Ms	hal	
+0000441E	USART2_Init	hal	115200 8N1
+0000447E	usart_poll_write	hal	blocking TXE poll per byte
+000044BC	DMA_M2M_Copy	hal	
+000044E6	sub_44E6	usb	
+00004598	printf	printf	
+000045D6	sub_45D6	printf	
+0000463C	sub_463C	printf	
+00004646	sub_4646	printf	
+0000468C	sub_468C	printf	
+000046F8	sub_46F8	printf	
+00004798	sub_4798	printf	
+00004802	sub_4802	printf	
+000048D6	sub_48D6	printf	
+000048FC	sub_48FC	printf	
+0000493E	vfprintf	printf	
+00004BCA	printf_pad_field	printf	
+00004CD6	printf_emit	printf	
+00004F78	sub_4F78	printf	
+00004FAA	sub_4FAA	printf	
+0000501E	sub_501E	printf	
+00005054	sub_5054	printf	
+00005112	_write_r	printf	
+00005148	sub_5148	printf	
+00005246	sub_5246	printf	
+00005276	sub_5276	printf	
+000053A6	sub_53A6	printf	
+0000540E	sub_540E	printf	
+00005442	sub_5442	printf	
+00005498	memcpy	printf	
+0000552A	sub_552A	printf	
+00005542	sub_5542	printf	
+00005544	sub_5544	printf	
+00005546	sub_5546	printf	
+000055EE	strlen	printf	
+00005622	strcmp	printf	
+00005654	sub_5654	printf	
+00005684	sub_5684	printf	
+00005694	sub_5694	printf	
+000056A4	sub_56A4	printf	
+000056B4	sub_56B4	printf	
+000056C4	sub_56C4	printf	

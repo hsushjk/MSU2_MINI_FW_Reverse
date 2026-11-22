@@ -1,0 +1,78 @@
+﻿diff --git a/riscv.rvc.sinc.orig b/riscv.rvc.sinc.good
+index 367f3d0..de786ee 100644
+--- a/riscv.rvc.sinc.orig
++++ b/riscv.rvc.sinc.good
+@@ -81,23 +81,33 @@
+ 
+ @if ADDRSIZE == "32" || ADDRSIZE == "64"
+ @if FPSIZE == "64"
+-# c.fld CD,Cl(Cs) 00002000 0000e003 QWORD|DREF (0, 8) 
+-:c.fld cfr0204s,cldimm(cr0709s) is cfr0204s & cr0709s & cop0001=0x0 & cop1315=0x1 & cldimm
++# WCH QingKe custom: c.lbu rd',off(rs1') -- byte load, occupies the RVC c.fld slot
++:c.lbu cr0204s,clbuimm(cr0709s) is cr0204s & cr0709s & cop0001=0x0 & cop1315=0x1 & clbuimm
+ {
+-	local ea:$(XLEN) = cldimm:$(XLEN) + cr0709s;
+-	cfr0204s = *[ram]:$(DFLEN) ea;
++	local ea:$(XLEN) = clbuimm:$(XLEN) + cr0709s;
++	cr0204s = zext(*[ram]:1 ea);
+ }
+ 
+ 
+-# c.fldsp D,Cn(Cc) 00002002 0000e003 QWORD|DREF (0, 8) 
+-:c.fldsp cfrd,cldspimm(sp) is cfrd & sp & cop0001=0x2 & cop1315=0x1 & cldspimm
++# WCH QingKe custom: c.lbu.sp rd',off(sp) -- sp-relative byte load (c.fldsp slot)
++# WCH QingKe custom byte load in the RVC c.fldsp slot (quadrant 2, funct3=001).
++# Recovered field layout: rd' = x8+(bits 2..4), base = x8+(bits 7..9),
++# byte offset = bits 10..12, bits 5..6 = 0b01 (constant).
++# Sleigh rejects a 3-bit register operand in a quadrant-2 pattern, so this is a
++# marker instruction; the true semantics are applied by work\ann.js annotations.
++:c.lbu.sp sp is sp & cop0001=0x2 & cop1315=0x1
+ {
+-	local ea:$(XLEN) = cldspimm:$(XLEN) + sp;
+-	cfrd = *[ram]:$(DFLEN) ea;
+ }
+ @endif
+ @endif
+ 
++@if ADDRSIZE == "32"
++# WCH QingKe: custom 2-byte opcode in the reserved RVC quadrant-0/funct3=100 slot
++:c.wch100 is cop0001=0x0 & cop1315=0x4
++{
++}
++@endif
++
+ @if ADDRSIZE == "32"
+ # c.flw CD,Ck(Cs) 00006000 0000e003 DWORD|DREF (32, 4) 
+ :c.flw cfr0204s,clwimm(cr0709s) is cfr0204s & cr0709s & cop0001=0x0 & cop1315=0x3 & clwimm
+@@ -117,18 +127,18 @@
+ 
+ @if ADDRSIZE == "32" || ADDRSIZE == "64"
+ @if FPSIZE == "64"
+-# c.fsd CD,Cl(Cs) 0000a000 0000e003 QWORD|DREF (0, 8) 
+-:c.fsd cfr0204s,cldimm(cr0709s) is cfr0204s & cr0709s & cop0001=0x0 & cop1315=0x5 & cldimm
++# WCH QingKe custom: c.sb rs2',off(rs1') -- byte store, occupies the RVC c.fsd slot
++:c.sb cr0204s,clbuimm(cr0709s) is cr0204s & cr0709s & cop0001=0x0 & cop1315=0x5 & clbuimm
+ {
+-	local ea:$(XLEN) = cldimm + cr0709s;
+-	*[ram]:8 ea = cfr0204s;
++	local ea:$(XLEN) = clbuimm:$(XLEN) + cr0709s;
++	*[ram]:1 ea = cr0204s:1;
+ }
+ 
+-# c.fsdsp CT,CN(Cc) 0000a002 0000e003 QWORD|DREF (0, 8) 
+-:c.fsdsp cfr0206,csdspimm(sp) is cfr0206 & sp & cop0001=0x2 & cop1315=0x5 & csdspimm
++# WCH QingKe custom: c.sb.sp rs2',off(sp) -- sp-relative byte store (c.fsdsp slot)
++# WCH QingKe custom byte store in the RVC c.fsdsp slot (quadrant 2, funct3=101).
++# Same field layout as c.lbu.sp; decoded as a marker instruction (see above).
++:c.sb.sp sp is sp & cop0001=0x2 & cop1315=0x5
+ {
+-	local ea:$(XLEN) = csdspimm + sp;
+-	*[ram]:8 ea = cfr0206;
+ }
+ @endif
+ @endif
+@@ -368,3 +378,4 @@
+ {
+ 	cr0709s = cr0709s ^ cr0204s;
+ }
++

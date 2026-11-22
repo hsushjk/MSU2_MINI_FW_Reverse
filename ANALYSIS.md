@@ -31,26 +31,17 @@
 | 屏 | **ST7735S**，0.96 英寸 160×80，RGB565，SPI | 初始化序列 @0x2778 + 手册 |
 | 总线 | SPI1 同时挂 flash 与 LCD：Master / 8 位 / **模式 3** / 软件 NSS / 2 分频 ⇒ **SCK = 24 MHz**；USART2 仅作调试口（115200 8N1，仅发送） | 0x4138（CTLR1≈0x0307）、0x4184（CTLR2=0x03）、0x441E |
 
-**板级连线**（据用户提供的原理图核对，丝印 `MN: MSU2M-2403 / RISC-V-48MHz / Moriateliers`，MCU 为 QFN-20）：
+**板级连线**的完整表（含 J1 各脚、JP1/JP2/JP3 与物料清单）在另一个仓库维护：[Open_MSU2_MINI/docs/PINOUT.md](https://github.com/hsushjk/Open_MSU2_MINI/blob/main/docs/PINOUT.md)。此处只列与固件行为直接相关的几项，其余引脚不再重复。
 
-| MCU 脚 | 网络名 | 接到 | 固件行为 |
-|---|---|---|---|
-| PA6 (1) | SPI_MISO | U2(P25D80H).DO **＋** J1.4 屏 D/C | **一脚本两用**，读 flash 时配浮空输入、写屏时配推挽输出 |
-| PA7 (2) | SPI_MOSI | U2.DI ＋ J1.5 SDA | SPI1 MOSI（AF_PP） |
-| PB1 (3) | Touch1 | 触摸按键 | **从未访问（0 处）**，触摸功能不存在 |
-| PB7 (4) | SPI_CS_Flash | U2.CS | 片选，每笔 flash 事务翻转 |
-| PC16/PC17 (5/6) | USB D−/D+ | USB 插头 | USB FS 设备（`AFIO->CTLR[7:4]` 选脚） |
-| PC18/PC19 (8/18) | I2C_DIO / I2C_CLK | JP1（与 SWDIO/SWCLK 复用） | **未实现**：全固件 0 处 I2C 访问 |
-| PA5 (20) | SPI_SCLK | U2.CLK ＋ J1.6 SCLK | SPI1 SCK（24 MHz） |
-| PA4 (19) | SPI_CS1 | JP3 | **从未驱动** |
-| PA3/PA2 (17/16) | RX2 / TX2 | JP3 | USART2，仅 `printf` 发送，RX 未使能 |
-| PA1 (15) | SPI_CS2 | JP2 | **从未驱动** |
-| PA0 (14) | RESET | J1.3 屏复位 | `lcd_init` 拉低 10 ms 再放高 |
-| PC3 (13) | SPI_CS_LCD | J1.8 屏片选 | 真正的屏片选 |
-| PA10/PA11 (12/11) | TX1 / RX1 | JP2 | **USART1 未初始化（0 处访问）** |
-| PA9 (10) | PA9 | 原理图上只有网络名（丝印该排有一脚标 PA9） | 没有任何器件依赖它，固件却仍在每次 LCD 事务里把它当第二片选翻转（28 处）——历史遗留的“幽灵片选” |
+| MCU 脚 | 网络名 | 固件中的表现 |
+|---|---|---|
+| PA6 (1) | SPI_MISO | U2(P25D80H).DO 与 J1.4 屏 D/C 共用一脚；读 flash 时配浮空输入、写屏时配推挽输出，方向由各函数自行重配（A9 / E4） |
+| PC3 (13) | SPI_CS_LCD | 真正的屏片选，随每笔 LCD 事务翻转 |
+| PA9 (10) | PA9 | 板上无负载，固件仍在每次 LCD 事务里翻转 28 次，属历史遗留（B 级现象，不影响功能） |
+| PA0 (14) | RESET | `lcd_init` 拉低 10 ms 后释放 |
+| PB1 (3) / PC18 / PC19 / PA10 / PA11 / PA4 / PA1 | Touch1 / I2C / USART1 / SPI_CS1 / SPI_CS2 | 固件中零访问。触摸按键实际经 ADC 通道 9 采样（见 §5），不是数字脚 |
 
-电源/背光：USB 5 V 经 **U3 = XC6206P33**（SOT-23 LDO）出 3.3 V，C1/C2 各 10 µF；屏背光 `J1.1 LED+` 经 **R1 = 5.1 Ω 直接接 5 V**——**没有调光三极管，也没有 PWM**（与固件里只有 TIM3 做 1 kHz tick 完全一致）。U2 的 `/WP`、`/HOLD` 都接死 3.3 V，所以 flash 侧没有用 HOLD 做总线隔离。
+电源与背光：USB 5 V 经 U3（XC6206P33，SOT-23 LDO）出 3.3 V，C1/C2 各 10 µF；屏背光 `J1.1 LED+` 经 R1 = 5.1 Ω 直接接 5 V，没有调光管也没有 PWM，与固件中 TIM3 只做 1 kHz tick 的事实一致。U2 的 `/WP`、`/HOLD` 接死 3.3 V，flash 侧没有用 HOLD 做总线隔离。
 
 固件镜像内部分区（反编译时按段验证）：
 
@@ -170,7 +161,9 @@ p[2..3] = 16 位大端值 A       p[4..5] = 16 位大端值 B
 
 ## 7. 缺陷清单
 
-分五级：**A 会挂死 / B 会造成错误显示 / C 协议与架构 / D 功能缺失与浪费 / E 工程质量**。每条的地址都能在 `decompiled/` 或 `work/listing7.txt` 里直接对上，逐函数的证据在 `work/reports2/*.md`。
+分五级：**A 会挂死 / B 会造成错误显示 / C 协议与架构 / D 功能缺失与浪费 / E 工程质量**。每条的地址都能在 `decompiled/` 或 `data/listing7.txt` 里直接对上，逐函数的证据在 `reports/` 下对应报告。
+
+同一份清单的机器可读版本在 [data/defects.csv](data/defects.csv)（编号、等级、标题、证据地址、影响、修复建议），便于筛选与跟踪。
 
 ### A. 会挂死（主机一帧数据就能做到）
 
@@ -263,7 +256,7 @@ p[2..3] = 16 位大端值 A       p[4..5] = 16 位大端值 B
 3. **WCH 青稞的自定义 RVC 编码**（最麻烦）。它把 RVC 里浮点 `c.fld/c.fsd`（象限 0）和 `c.fldsp/c.fsdsp`（象限 2）的编码位挪用成**字节/半字 load-store**：
    - 象限 0（0x6000/0xA000 掩码）：`lbu rd', off(rs1')` / `sb`，`rd' = x8+(b4:b2)`，`rs1' = x8+(b9:b7)`，`off = b12 + 2*b5 + 4*b6`（0..7）；
    - 象限 2（0x2000/0xA000 掩码，即 `c.fldsp/c.fsdsp`）：**16 位** `lhu/sh`，`rd' = x8+(b4:b2)`，`rs1' = x8+(b9:b7)`，`off = 8*(b12:b10) + 2*(b6:b5)`（偶数，0..62），位 5..6 恒为 `0b01`。
-   我直接改了 Ghidra 的 RISC-V 语言定义（`riscv.table.sinc` 加 `clbuimm` 表、`riscv.rvc.sinc` 用 `c.lbu/c.sb` 替换 `c.fld/c.fsd`），再用 `sleigh.exe riscv.ilp32d.slaspec` 重新编译语言。象限 2 的槽位在 Sleigh 12.2 里**无法**用一个新构造器表达（任何附加定义都让 `sleigh` 静默退出 1），所以那 179 个点保留成无操作数标记指令，由 `work/ann.js` 事后按上面的公式还原，并在生成源码时作为每个函数的头部注释列出来。
+   我直接改了 Ghidra 的 RISC-V 语言定义（`riscv.table.sinc` 加 `clbuimm` 表、`riscv.rvc.sinc` 用 `c.lbu/c.sb` 替换 `c.fld/c.fsd`），再用 `sleigh.exe riscv.ilp32d.slaspec` 重新编译语言。象限 2 的槽位在 Sleigh 12.2 里**无法**用一个新构造器表达（任何附加定义都让 `sleigh` 静默退出 1），所以那 179 个点保留成无操作数标记指令，由 `tools/ann.js` 事后按上面的公式还原，并在生成源码时作为每个函数的头部注释列出来。
 
 ### 8.2 工具链
 

@@ -1,0 +1,11 @@
+addr	refs	text
+00005718		Flash_Info
+00005736		MSN_Status
+00005c38	main@ram:000039d8 	SystemClk:%d\n
+00005c48	main@ram:000039e8 	ChipID:%08x\n
+00005c60	main@ram:00003af2 	isn't 
+00005c68	main@ram:00003b0c 	activated.
+00005db4	FUN_ram_0000493e@ram:000049f0 	#-0+ 
+00005dc0	FUN_ram_0000493e@ram:00004b42 	efgEFG
+00005dc8	FUN_ram_00004cd6@ram:00004e36 	0123456789ABCDEF
+00005ddc		0123456789abcdef
