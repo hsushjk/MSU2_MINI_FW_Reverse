@@ -261,16 +261,16 @@ p[2..3] = 16 位大端值 A       p[4..5] = 16 位大端值 B
 ### 8.2 工具链
 
 ```
-ghidra_proj7/          Ghidra 12.2 工程（语言已打补丁）
-dump7/funcs/*.c        165 个函数的原始反编译
-listing7.txt           全镜像反汇编（9963 行，ram:ADDR 字节 助记符）
-q2sites.txt            179 个象限 2 自定义指令的真实语义
-symbols.tsv            地址 → 符号名 / 模块
-src/                   gen_src.js 生成的带名字源码（即 decompiled/ 的内容）
-reports2/*.md          六个方向的逐函数验证报告（缺陷与证据）
+data/listing7.txt       全镜像反汇编（9963 行，ram:ADDR 字节 助记符），唯一权威数据源
+data/q2sites.txt        179 个象限 2 自定义指令的真实语义
+data/symbols.tsv        地址 → 符号名 / 模块
+data/regmap.json        858 个外设寄存器名与地址
+data/calls.tsv          调用关系（caller → callee）
+decompiled/             带符号名与模块拆分的源码（由 tools/gen_src.js 生成）
+reports/                六个方向的逐函数验证报告（缺陷与证据）
 ```
 
-生成流程：`node mk_symbols.js`（地址→名字）→ `node gen_src.js`（把 `FUN_ram_XXXX`、`_DAT_ram_XXXXXXXX`、`&DAT_ram_00005xxx` 全部换成符号/寄存器/字符串名，并按模块拆文件）。
+生成流程：`node tools/mk_symbols.js`（地址→名字）→ `node tools/gen_src.js`（把 `FUN_ram_XXXX`、`_DAT_ram_XXXXXXXX`、`&DAT_ram_00005xxx` 全部换成符号、寄存器名与字符串名，并按模块拆文件）。`tools/regmap.js` 负责从 WCH 头文件结构体计算寄存器偏移，`tools/ann.js` 把象限 2 指令还原成 `lhu`/`sh` 并写入每个函数的头部注释，`tools/gen_diagrams.js` 生成结构图。
 
 ### 8.3 已知的残留问题
 
@@ -289,12 +289,21 @@ reports2/*.md          六个方向的逐函数验证报告（缺陷与证据）
 | `decompiled/*.c` | 反编译源码：`crt.c boot.c main.c cmd.c uart.c usb.c flash.c lcd.c draw.c hal.c printf.c lib.c` |
 | `decompiled/registers.h` | 858 个外设寄存器符号（从 `ch32x035.h` 结构体算出来的偏移） |
 | `decompiled/strings.h` | 14 个字符串 + 8 个数据表（USB 描述符、字模表） |
-| `decompiled/reports/g1_usb.md` | USBFS 中断、端点、12 类标准请求、SET_REPORT 越界（83 行） |
-| `decompiled/reports/g2_plumbing.md` | 启动链、时钟、TIM3、USART2、DMA、存取桩（115 行） |
-| `decompiled/reports/g3_flash_lcd.md` | SPI1 配置、P25D80 命令集、ST7735S 初始化、擦除规划（119 行） |
-| `decompiled/reports/g4_drawing.md` | 窗口/RAMWR、颜色与单色两条通路、几何与挂死条件（114 行） |
-| `decompiled/reports/g5_hal.md` | GPIO/DMA/USART/SPI/TIM 访问器与 WCH 库行为（95 行） |
-| `decompiled/reports/g6_printf.md` | newlib printf 全链、格式符行为、syscall 桩（116 行） |
+| [`reports/g1_usb.md`](reports/g1_usb.md) | USBFS 中断、端点、12 类标准请求、SET_REPORT 越界 |
+| [`reports/g2_plumbing.md`](reports/g2_plumbing.md) | 启动链、时钟、TIM3、USART2、DMA、存取桩 |
+| [`reports/g3_flash_lcd.md`](reports/g3_flash_lcd.md) | SPI1 配置、P25D80 命令集、ST7735S 初始化、擦除规划 |
+| [`reports/g4_drawing.md`](reports/g4_drawing.md) | 窗口/RAMWR、颜色与单色两条通路、几何与挂死条件 |
+| [`reports/g5_hal.md`](reports/g5_hal.md) | GPIO/DMA/USART/SPI/TIM 访问器与 WCH 库行为 |
+| [`reports/g6_printf.md`](reports/g6_printf.md) | newlib printf 全链、格式符行为、syscall 桩 |
+| [`data/defects.csv`](data/defects.csv) | 缺陷清单的机器可读版本：编号、等级、证据地址、影响、修复建议 |
+| [`data/symbols.tsv`](data/symbols.tsv) | 165 个函数的地址、符号名、模块、备注 |
+| [`data/regmap.json`](data/regmap.json) | 858 个外设寄存器名与地址 |
+| `data/q2sites.txt` | 179 处象限 2 自定义指令的语义还原结果 |
+| `data/listing7.txt` | 全镜像反汇编（唯一权威数据源，686 888 B） |
+| [`docs/METHOD.md`](docs/METHOD.md) | 方法学：语言补丁、可达性修复、验证手段、复现步骤 |
+| [`docs/FINGERPRINT.md`](docs/FINGERPRINT.md) | 固件指纹、分区校验值与自验命令 |
+| [`docs/diagrams/`](docs/diagrams/) | 启动链、状态机、命令分派、USB 数据通路四张结构图 |
+| [`NOTICE.md`](NOTICE.md) | 第三方材料与商标说明 |
 
 模块规模（函数数）：hal 43、printf 37、flash 22、draw 17、usb 9、boot 9、lcd 8、lib 8、uart 7、cmd 3、main 1、crt 1。
 
