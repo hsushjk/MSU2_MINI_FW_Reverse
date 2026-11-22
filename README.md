@@ -12,7 +12,7 @@ MSU2_MINI 可编程 USB 屏幕（`Moriateliers` / `MSU2M-2403`）**官方固件 
 - "MSU2"、"Moriateliers"、"WCH"、"CH32" 等名称与商标归各自权利人所有，本项目与其无任何关联或授权关系。
 - 分析结论按"尽力而为"提供，不附带任何担保。
 
-硬件连线表与协议规范（可自由使用，MIT）在另一个仓库：`Open_MSU2_MINI`。
+硬件连线表与协议规范（可自由使用，MIT）在另一个仓库：[Open_MSU2_MINI](https://github.com/hsushjk/Open_MSU2_MINI)。
 
 ---
 
