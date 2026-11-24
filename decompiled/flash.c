@@ -1,5 +1,5 @@
 /* MSU2_MINI firmware 1.1 -- reconstructed C, module "flash".
- * Target: WCH CH32X033F8P6 (RISC-V RV32IMC + WCH byte load/store extensions), 48 MHz, 62 KB usable flash (64 KB nominal),
+ * Target: WCH CH32X033F8P6 (RISC-V RV32IMAC + WCH byte load/store extensions), 48 MHz, 64 KB flash (62 KB usable),
  * 20 KB SRAM at 0x20000000, 1 MB SPI NOR (P25D80), 0.96" 160x80 ST7735S panel.
  *
  * Reconstructed from the vendor image (24 224 bytes, flash 0x0000-0x5E9F) with Ghidra 12.2
