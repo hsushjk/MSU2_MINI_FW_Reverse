@@ -1,6 +1,6 @@
 # MSU2_MINI 固件 V1.1 反编译报告
 
-目标：`[固件]MSU2_MINI_Firmware_V1.1.hex`（68156 字节 Intel HEX，2024-10-08，对应 flash 0x0000–0x5E9F，共 24 224 字节）。
+目标：`[固件]MSU2_MINI_Firmware_V1.1.hex`（68 156 字节 Intel HEX，对应 flash 0x0000–0x5E9F，共 24 224 字节）。
 设备：墨砺工作室（MORI ATELIERS）MSU2 系列可编程 USB 屏幕的 MINI 版本。
 
 本报告配套的**可读源码**在 [`decompiled/`](decompiled/index.md)：165 个函数全部反编译成功（0 失败），按 12 个模块拆成 C 文件，外设寄存器、字符串、全局变量都已换成符号名。
@@ -16,7 +16,7 @@
    - SPI1 总线被 flash 和 LCD 共用，而 **PA6 一根脚同时是 flash 的 MISO 和 LCD 的 D/C**，要靠每个函数自己重配引脚方向，漏配一次（例如重发一次 `lcd_init`）屏就在 D/C 悬空下收命令（A9 / E4）；
    - 主机可控的页号、长度、地址**全线不校验**，可以让 LCD 流式写入死等（长度 0 → 挂死）、可以让 `w*h` 溢出成永久循环、可以让 flash 擦除在 16 位边界回绕（A1/A4/A8）；
    - 命令队列用“144 字节环 / 6 字节步长”硬编码，而一帧实际是 24 字节，只因 24 = 4×6 才凑巧对齐；生产/消费之间没有互斥，连发 16 包就会覆盖未处理的数据（C1/C2/C10）。
-4. 反编译本身也有坑：这颗 WCH RISC-V 核把 RVC 压缩指令里 `c.fld/c.fsd`（象限 0）和 `c.fldsp/c.fsdsp`（象限 2）的编码位挪去做 **字节/半字 load-store** 了，Ghidra 默认会解成浮点指令。我用补丁修改了 Ghidra 的 RISC-V 语言定义，并写脚本事后标注象限 2 的 179 个点（见 §8.1）。
+4. 反编译本身也有坑：这颗 WCH RISC-V 核把 RVC 压缩指令里 `c.fld/c.fsd`（象限 0）和 `c.fldsp/c.fsdsp`（象限 2）的编码位挪去做 **字节/半字 load-store** 了，Ghidra 默认会把它解成浮点指令，需要按上述编码修改 RISC-V 语言定义，并由事后标注脚本恢复象限 2 的 179 个点（见 §8.1）。
 
 ---
 
@@ -25,7 +25,7 @@
 | 项 | 值 | 依据 |
 |---|---|---|
 | MCU | WCH **CH32X033F8P6**，RV32IMAC + 青稞扩展，48 MHz | 固件 `ChipID`/`SystemClk` 打印 + 外设地址表 |
-| 内核 flash | 64 KB，本固件占用 24 224 B（0x0000–0x5E9F） | HEX 解析 |
+| 内核 flash | 62 KB 可用（标称 64 KB；链接脚本只映射 62 KB），本固件占用 24 224 B（0x0000–0x5E9F） | HEX 解析 + 链接脚本 |
 | SRAM | 20 KB @ 0x20000000（`sp` 初始 = 0x20005000） | crt0 @0x3BB4 |
 | 片外 flash | **P25D80**，1 MB，256 B/页，共 4096 页 | flash 驱动命令集（0x03/0x0B/0x02/0x20/0x52/0x4B/0x90） |
 | 屏 | **ST7735S**，0.96 英寸 160×80，RGB565，SPI | 初始化序列 @0x2778 + 手册 |
@@ -35,7 +35,7 @@
 
 | MCU 脚 | 网络名 | 固件中的表现 |
 |---|---|---|
-| PA6 (1) | SPI_MISO | U2(P25D80H).DO 与 J1.4 屏 D/C 共用一脚；读 flash 时配浮空输入、写屏时配推挽输出，方向由各函数自行重配（A9 / E4） |
+| PA6 (1) | SPI_MISO | U2(P25D80).DO 与 J1.4 屏 D/C 共用一脚；读 flash 时配浮空输入、写屏时配推挽输出，方向由各函数自行重配（A9 / E4） |
 | PC3 (13) | SPI_CS_LCD | 真正的屏片选，随每笔 LCD 事务翻转 |
 | PA9 (10) | PA9 | 板上无负载，固件仍在每次 LCD 事务里翻转 28 次，属历史遗留（B 级现象，不影响功能） |
 | PA0 (14) | RESET | `lcd_init` 拉低 10 ms 后释放 |
@@ -45,7 +45,7 @@
 
 固件镜像内部分区（反编译时按段验证）：
 
-```
+```text
 0x0000  vector table (WCH 向量模式, 每项 4 字节, 未用项指向 0x3BB2 的 `j self`)
 0x0240  cmd_dispatch 的 switch 分支体 (0x354..0x50B 由 0x56D4 的 17 项跳转表索引)
 0x0A90  UART / TIM3 / DMA 相关
@@ -93,7 +93,7 @@
 | USART2 | 115200 8N1，仅发送（TE），PA2/PA3 复用 | **只给 `printf` 用**：上电打印 `SystemClk`、`ChipID`，之后是调试输出 |
 | USBFS | 全速设备，EP0 + EP2 OUT + EP3 IN（EP1 使能不用，EP4 只能发 ZLP，EP5–7 未配） | 见 §4 |
 | DMA1 | CH2/CH3 = SPI1 RX/TX，CH8 = USB 包搬进环形队列 | CH8 是内存到内存 |
-| ADC1 | 通道 9，单次转换 | 命令 0x12/0x13 读它（面板电压/按键？） |
+| ADC1 | 通道 9，TKey 触摸采样 | `adc_init` 置 `CTLR1` bit24（`ADC_TKENABLE`）；`adc_read` 写 `IDATAR1 = 0x70`、`RDATAR = 0x40`，轮询 `STATR` 的 EOC/JEOC 后读 `RDATAR` |
 
 主循环 `main_loop`（0x59A）是一个**两状态状态机**，状态存在 `gp-0x7B2`：
 
@@ -131,19 +131,19 @@
 
 一次操作 = 6 字节记录：
 
-```
+```text
 p[0] = class        p[1] = sub / opcode
 p[2..3] = 16 位大端值 A       p[4..5] = 16 位大端值 B
 ```
 
 | class | sub | 作用 | 实现 |
 |---|---|---|---|
-| 0 | 0x30 | 子操作 `A>>8`（即 p[2]>>5）：0 = 查表，1 = 设平滑系数，4 = 写 LUT 字节（序号 <0x100），5 = 空操作 | 0x250 |
+| 0 | 0x30 | 子操作 = `p[2] >> 5`（帧第 3 字节的高 3 位）：0 = 查表，1 = 设平滑系数，4 = 写 LUT 字节（序号 <0x100），5 = 空操作 | 0x250 |
 | 0 | 0x4D | 原样回显 | 0x250 |
 | 2 | 0,1,2 | 设矩形：x0,y0 / x1,y1 / 前景页+背景页 | 0x250 |
 | 2 | 3 | 绘图操作组，`p[2]` = 0..0xB：填充、带背景色块、1-bit 图像、带背景页的 1-bit 图像（`LCD_Photo_wb_MIX`）、颜色图块、纯色流等 | 0x2EA4 / 0x31C0 / 0x367C / 0x36B8 / 0x33B8 / 0x3698 / 0x37D4 / 0x305A / 0x30C6 / 0x3148 / 0x2778 / 0x2A9C |
 | 2 | 4 | 装 256 字节图案块 | 0x2E80 |
-| 3 | 0..3 | flash：读一页 / 写一页 / 擦除 / 快速读（24 位地址 = `A<<8 | p[4]`） | 0x1F80 / 0x2202 / 0x250E / 0x2306 |
+| 3 | 0..3 | flash：读一页 / 写一页 / 擦除范围 / 写页（第二实现）（24 位地址 = `A<<8 | p[4]`） | 0x1F80 / 0x2202 / 0x250E / 0x2306 |
 | 8 | — | 读模拟量：`sub_2C58(p[1])`，结果放在应答的 B | 0x2C58 |
 
 除 `class 2 / sub 3 / op 8,9` 外，每条命令都会把 6 字节原样回传（class 0/3 还会在 A/B 里带上读回的值）。
@@ -245,39 +245,39 @@ p[2..3] = 16 位大端值 A       p[4..5] = 16 位大端值 B
 
 ---
 
-## 8. 复现方法（我怎么反编译的）
+## 8. 复现方法
 
 ### 8.1 让 Ghidra 认识这颗核
 
-三个坑，按遇到顺序：
+三个障碍：
 
-1. **`mret` 进 main**：自动分析顺着 `j 0x3BB4` 走，到 `mepc = 0x39B4; mret` 就断了，`main` 及其 2.3 KB 调用树全部没被识别。解决：preScript `Main.java` 里先 `disassemble(toAddr(0x39B4))` 再 `createFunction(a,"main")`。同类问题还有 `0x240..0xB33` 那段 `switch` 分支体——它由 0x56D4 的 17 项跳转表索引，没被 `main` 调用前是空白，识别 main 后自动补齐。
-2. **`-msave-restore` 的存取桩**：`0x100/0x108/0x116/0x130` 是 `__riscv_save_N`，末尾是 `c.jr t0`，Ghidra 把它当“未知跳转 → 当成 call”，导致每个函数都多出一堆 `extraout_a4/a5` 伪变量。解决：preScript `Patch.java` 把那几条 `c.jr t0` 改成 `ret`（必须先 `clearListing` 才能改字节）。注意 `extraout_*` 其实就是“进入函数时还活着的参数寄存器”，读 C 的时候要按这个理解，不要当成新变量。
+1. **`mret` 进 main**：自动分析顺着 `j 0x3BB4` 走，到 `mepc = 0x39B4; mret` 就断了，`main` 及其 2.3 KB 调用树全部没被识别。解决：用一个 preScript（`Main.java`，未随本仓库发布）先 `disassemble(toAddr(0x39B4))` 再 `createFunction(a,"main")`。同类问题还有 `0x240..0xB33` 那段 `switch` 分支体——它由 0x56D4 的 17 项跳转表索引，没被 `main` 调用前是空白，识别 main 后自动补齐。
+2. **`-msave-restore` 的存取桩**：`0x100/0x108/0x116/0x130` 是 `__riscv_save_N`，末尾是 `c.jr t0`，Ghidra 把它当“未知跳转 → 当成 call”，导致每个函数都多出一堆 `extraout_a4/a5` 伪变量。解决：用 preScript（`Patch.java`，未随本仓库发布）把那几条 `c.jr t0` 改成 `ret`（必须先 `clearListing` 才能改字节）。注意 `extraout_*` 其实就是“进入函数时还活着的参数寄存器”，读 C 的时候要按这个理解，不要当成新变量。
 3. **WCH 青稞的自定义 RVC 编码**（最麻烦）。它把 RVC 里浮点 `c.fld/c.fsd`（象限 0）和 `c.fldsp/c.fsdsp`（象限 2）的编码位挪用成**字节/半字 load-store**：
    - 象限 0（0x6000/0xA000 掩码）：`lbu rd', off(rs1')` / `sb`，`rd' = x8+(b4:b2)`，`rs1' = x8+(b9:b7)`，`off = b12 + 2*b5 + 4*b6`（0..7）；
    - 象限 2（0x2000/0xA000 掩码，即 `c.fldsp/c.fsdsp`）：**16 位** `lhu/sh`，`rd' = x8+(b4:b2)`，`rs1' = x8+(b9:b7)`，`off = 8*(b12:b10) + 2*(b6:b5)`（偶数，0..62），位 5..6 恒为 `0b01`。
-   我直接改了 Ghidra 的 RISC-V 语言定义（`riscv.table.sinc` 加 `clbuimm` 表、`riscv.rvc.sinc` 用 `c.lbu/c.sb` 替换 `c.fld/c.fsd`），再用 `sleigh.exe riscv.ilp32d.slaspec` 重新编译语言。象限 2 的槽位在 Sleigh 12.2 里**无法**用一个新构造器表达（任何附加定义都让 `sleigh` 静默退出 1），所以那 179 个点保留成无操作数标记指令，由 `tools/ann.js` 事后按上面的公式还原，并在生成源码时作为每个函数的头部注释列出来。
+   Ghidra 的 RISC-V 语言定义按上述编码修改（`riscv.table.sinc` 加 `clbuimm` 表、`riscv.rvc.sinc` 用 `c.lbu/c.sb` 替换 `c.fld/c.fsd`），再用 `sleigh.exe riscv.ilp32d.slaspec` 重新编译语言；补丁未随本仓库发布，做法即本节描述。象限 2 的槽位在 Sleigh 12.2 里**无法**用一个新构造器表达（任何附加定义都让 `sleigh` 静默退出 1），所以那 179 个点保留成无操作数标记指令，由事后标注脚本按上面的公式还原，并在生成源码时作为每个函数的头部注释列出来。
 
 ### 8.2 工具链
 
-```
-data/listing7.txt       全镜像反汇编（9963 行，ram:ADDR 字节 助记符），唯一权威数据源
+```text
+data/listing7.txt       全镜像反汇编（9 963 行，ram:ADDR 字节 助记符），唯一权威数据源
 data/q2sites.txt        179 个象限 2 自定义指令的真实语义
 data/symbols.tsv        地址 → 符号名 / 模块
 data/regmap.json        858 个外设寄存器名与地址
 data/calls.tsv          调用关系（caller → callee）
-decompiled/             带符号名与模块拆分的源码（由 tools/gen_src.js 生成）
+decompiled/             带符号名与模块拆分的源码（由生成脚本产出）
 reports/                六个方向的逐函数验证报告（缺陷与证据）
 ```
 
-生成流程：`node tools/mk_symbols.js`（地址→名字）→ `node tools/gen_src.js`（把 `FUN_ram_XXXX`、`_DAT_ram_XXXXXXXX`、`&DAT_ram_00005xxx` 全部换成符号、寄存器名与字符串名，并按模块拆文件）。`tools/regmap.js` 负责从 WCH 头文件结构体计算寄存器偏移，`tools/ann.js` 把象限 2 指令还原成 `lhu`/`sh` 并写入每个函数的头部注释，`tools/gen_diagrams.js` 生成结构图。
+生成流程分四步：先用符号表把地址映射成名字；再把 `FUN_ram_XXXX`、`_DAT_ram_XXXXXXXX`、`&DAT_ram_00005xxx` 全部换成符号、寄存器名与字符串名，并按模块拆文件；寄存器偏移由 WCH 头文件的结构体定义计算；象限 2 指令按 §8.1 的公式还原成 `lhu`/`sh` 并写入每个函数的头部注释。上述脚本均未随本仓库发布。
 
 ### 8.3 已知的残留问题
 
 - `extraout_*` 需要读者自己按调用约定还原（见 8.1 第 2 条）。
 - `0x4FD6`（`__swrite`）与 `0x504E` 只有两字节 `c.j` 的尾部跳转，目标操作数在这个镜像里无法解码，只能按整条 syscall 链推断。
 - 图像/字模数据在片外 flash 里，固件内没有它的副本；§7 的 B6（+5 字节相位）需要一份真正的 flash 导出才能最终确认。
-- ST7735S 的时序上限按手册（≈15.15 MHz、SLPOUT 120 ms）判断；本机 `web_search` 不可用，无法在线复核数据手册原文。
+- ST7735S 的时序上限按手册记忆值（≈15.15 MHz、SLPOUT 120 ms）判断，未经在线复核。
 
 ---
 
@@ -300,8 +300,8 @@ reports/                六个方向的逐函数验证报告（缺陷与证据�
 | [`data/regmap.json`](data/regmap.json) | 858 个外设寄存器名与地址 |
 | `data/q2sites.txt` | 179 处象限 2 自定义指令的语义还原结果 |
 | `data/listing7.txt` | 全镜像反汇编（唯一权威数据源，686 888 B） |
-| [`docs/METHOD.md`](docs/METHOD.md) | 方法学：语言补丁、可达性修复、验证手段、复现步骤 |
-| [`docs/FINGERPRINT.md`](docs/FINGERPRINT.md) | 固件指纹、分区校验值与自验命令 |
+| [`docs/METHOD.md`](docs/METHOD.md) | 方法学：私有指令补丁、可达性修复、验证手段、复现步骤（脚本未随仓库发布） |
+| [`docs/FINGERPRINT.md`](docs/FINGERPRINT.md) | 固件指纹、分区校验值与自验方法 |
 | [`docs/diagrams/`](docs/diagrams/) | 启动链、状态机、命令分派、USB 数据通路四张结构图 |
 | [`NOTICE.md`](NOTICE.md) | 第三方材料与商标说明 |
 
@@ -309,16 +309,8 @@ reports/                六个方向的逐函数验证报告（缺陷与证据�
 
 **建议阅读顺序**：`main.c` → `boot.c`（启动/时钟）→ `usb.c`（中断与端点）→ `cmd.c`（协议分派）→ `flash.c` + `lcd.c` + `draw.c`（真正干活的部分）→ `hal.c`（WCH 库）。每个函数头部都标了原始地址、调用者，以及它用到的象限 2 自定义指令的真实语义。
 
-## 附：重写固件时的实测校正（2026-11）
+## 附：触摸通道 9 的采样方式
 
-下面几条是照着这份分析重写固件、并在真板上跑通之后回填的。原文有些地方是纯静态推断，
-实测结果与之不同，以这里为准：
+`adc_init`（0x2BCC）在末尾置 `ADC1->CTLR1` 的 bit 24（`ADC_TKENABLE`）；`adc_read`（0x2C58）写 `ADC1->IDATAR1 = 0x70`、`ADC1->RDATAR = 0x40`，再轮询 `ADC1->STATR` 的 EOC/JEOC，返回 `RDATAR` 的低 16 位。
 
-| 主题 | 静态分析的写法 | 实测结论 |
-|---|---|---|
-| ADC / 触摸 | 「ADC1 通道 9，单次转换」（§5 表） | 走的是 **TKey 触摸键模式**：`adc_init` 末尾 `CTLR1 |= 1<<24`（`ADC_TKENABLE`），`adc_read` 写 `IDATAR1 = 0x70`、`RDATAR = 0x40`，等 `STATR` 的 `EOC`/`JEOC` 后读 `RDATAR`。空载读数约 3900–3940，手指按下掉 100–400 不等 |
-| 片外 flash | P25D80 只给了命令集推断，未标“已验证” | 可用：JEDEC ID 能读，`0x20` 4 KB 扇区擦除 + `0x02` 页编程实测成功（自研固件把配置存在 `0x0FF000`） |
-| PA6 一脚两用 | 列为 A9/E4 级缺陷，屏可能在 D/C 悬空下收命令 | 只要**每次切换都重配方向**就安全：LCD 事务期间 PA6 作推挽输出驱动 D/C，flash 事务前切回浮空输入。自研固件沿用同一套 GPIO 配置，长测无异常 |
-| 看门狗 | 「全固件没有任何看门狗访问（0x40003000 一次都没出现）」 | 结论正确，且这组寄存器在 CH32X033 上确实可用：`0x5555` 解锁 → `PSCR=3`（LSI/16）、`RLDR=0x0FFF` → `0xCCCC` 启动 → 主循环 `0xAAAA` 喂狗，约 1.6 s 超时，实测能复位卡死的主循环 |
-| SPI 速率 | 24 MHz（2 分频） | 同配置下自研固件收流稳定：整帧 25 924 B 约 113 ms（含 USB 开销），约 230 KB/s |
-| 重发 / 残影 | 无（原厂没有回执机制） | 原厂这套「无回执 + 主机差分编码」丢一包就**永久留残影**；自研固件改成每帧回一个裁决字节 `0x06/0x15` 让主机整帧重发 |
+触摸电极接 PB1（ADC 通道 9）。`cmd.c` 中 0x12、0x13 分支与 0x14–0x37 纯色分支都调用 `adc_read(9)`：0x13 分支对读数取平均后减 0x7D，0x14–0x37 与 0x38 分支把新读数与 `g_adc_value` 比较后更新 `gp-0x7C4` 处的标志。

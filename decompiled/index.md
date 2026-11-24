@@ -75,7 +75,7 @@
 | 0x2A20 | lcd_set_window | lcd | CASET/RASET/RAMWR |
 | 0x2A9C | lcd_blit_colour | lcd | RGB565 rectangle from flash page |
 | 0x2BCC | adc_init | lcd | ADC1 channel setup |
-| 0x2C58 | adc_read | lcd | single conversion on a channel, averaged |
+| 0x2C58 | adc_read | lcd | TKey touch-key sampling on channel 9 |
 | 0x2C9E | spi_dma_tx_init | draw | DMA1 CH3 (TX) -> SPI1 |
 | 0x2CF4 | spi_dma_rx_init | draw | DMA1 CH2 (RX) <- SPI1 |
 | 0x2D48 | dma_ring_init | draw | DMA1 CH8 memory-to-memory |

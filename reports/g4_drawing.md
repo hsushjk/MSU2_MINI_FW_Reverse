@@ -51,7 +51,8 @@ SAMPTR) and one ADC read (`return RDATAR & 0xFFFF` after polling STATR bit 1).
 **D1 [Q5] 0x30C6 — host length used raw, wait unbounded.** `CNTR = a1` 0x30FE (16-bit, packet p[3..4]),
 source 0x20000130 (256-B tile), enable 0x3110, poll 0x3114–0x311C. **len=0: CNTR=0 starts no transfer,
 TCIF3 never rises, the loop spins forever with PA9/PC3 held low (0x30DC/0x30E8)** — reset required.
-len up to 65535 also dumps ~64 KB of SRAM to the panel.
+len up to 65535 also requests far more bytes than the 20 KB SRAM holds (source is 0x20000130; SRAM ends
+at 0x20005000).
 
 **D2 [Q5] 0x3148 — unconditional TCIF3 poll 0x314C–0x3154.** A lone "end stream" (op 9) spins on a flag
 that 0x30C6 already cleared (0x3122) ⇒ permanent hang, panel left in the previous CS state.

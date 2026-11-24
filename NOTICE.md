@@ -8,9 +8,9 @@
 
 ## Ghidra
 
-`tools/` 下的 Java 脚本（`Seed`、`Main`、`Dump`、`Patch`、`Ls`、`Probe`、`Gaps`）与 `tools/language-patch/` 下的补丁面向 Ghidra 12.2 编写。Ghidra 由美国国家安全局研究局开发并以 Apache License 2.0 发布，本仓库不包含也不重新分发 Ghidra 本体。
+分析所用的 Ghidra 脚本（`Seed`、`Main`、`Dump`、`Patch`、`Ls`、`Probe`、`Gaps`）与 RISC-V 语言补丁面向 Ghidra 12.2 编写，**未随本仓库发布**，本仓库只记录其用途与修改点（见 [`docs/METHOD.md`](docs/METHOD.md)）。Ghidra 由美国国家安全局研究局开发并以 Apache License 2.0 发布，本仓库不包含也不重新分发 Ghidra 本体。
 
-语言补丁修改的是 Ghidra 自带的 RISC-V 语言定义文件（`riscv.rvc.sinc`、`riscv.table.sinc`），补丁以 diff 形式提供，需在本地 Ghidra 安装目录中应用，因此不构成对 Ghidra 的再分发。这些文件的原始内容同样受 Apache License 2.0 约束。
+语言补丁修改的是 Ghidra 自带的 RISC-V 语言定义文件（`riscv.rvc.sinc`、`riscv.table.sinc`），需在本地 Ghidra 安装目录中应用；修改方法与关键片段见 [`docs/METHOD.md`](docs/METHOD.md)。这些文件的原始内容同样受 Apache License 2.0 约束。
 
 ## 固件中的 C 库
 
@@ -24,7 +24,7 @@
 
 ## 本仓库自有内容
 
-`README.md`、`ANALYSIS.md`、`docs/`、`data/`、`reports/`、`tools/` 中由本仓库撰写的文本与脚本，版权归仓库作者所有；因本仓库未设许可文件，这些内容保留所有权利。
+`README.md`、`ANALYSIS.md`、`docs/`、`data/`、`reports/` 中由本仓库撰写的内容，版权归仓库作者所有。本仓库未附许可文件，内容仅供研究与学习使用。
 
 ## 商标
 

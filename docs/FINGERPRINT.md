@@ -43,17 +43,13 @@
 
 ## 自验方法
 
-```bash
-node tools/hex2bin.js "[固件]MSU2_MINI_Firmware_V1.1.hex" image.bin
+用任意 Intel HEX 解析工具（记录类型 00/01/04/05）把原始文件转成裸 bin 后比对：
+
+```text
+hex   大小    : 68 156 B
+hex   SHA-256 : c34525fdd058d9841679d49cc673b3cead6382905888e8f1dd0cfc4ec9b8be42
+镜像  大小    : 24 224 B，地址范围 0x0000 - 0x5E9F
+镜像  SHA-256 : cd2d977207bee2a4e95668c79b9a00ba81fe3910feed452f4665afae73fe36f3
 ```
 
-输出应包含：
-
-```
-records   : 1516
-range     : 0x0000 - 0x5e9f (24224 bytes)
-sha256    : cd2d977207bee2a4e95668c79b9a00ba81fe3910feed452f4665afae73fe36f3
-sha256(raw): c34525fdd058d9841679d49cc673b3cead6382905888e8f1dd0cfc4ec9b8be42
-```
-
-分区指纹可用同一条命令配合 `dd` 或任何区间哈希工具复算。
+分区指纹可用同一方法对相应地址区间复算。

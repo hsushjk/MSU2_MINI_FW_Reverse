@@ -1,4 +1,4 @@
-# G3 — SPI flash (P25D80) driver + LCD bring-up (re-verified on dump7 / listing7 / q2sites)
+# G3 — SPI flash (P25D80) driver + LCD bring-up
 
 Functions: 0x1A66, 0x1A86, 0x1B10, 0x1B66, 0x1BC6, 0x1CFC, 0x1E32, 0x1E6C, 0x1E7A, 0x1EA8, 0x1F0A,
 0x1F80, 0x1FF6, 0x2060, 0x20F8, 0x2202, 0x2306, 0x23BE, 0x2412, 0x2466, 0x24BA, 0x250E,
@@ -15,8 +15,9 @@ Functions: 0x1A66, 0x1A86, 0x1B10, 0x1B66, 0x1BC6, 0x1CFC, 0x1E32, 0x1E6C, 0x1E7
 - **Clock 24 MHz.** `FUN_4388` computes 1 ms = 0x1770 SysTick ticks from 8e6 ⇒ HCLK = PCLK2 =
   48 MHz (no PLL/HSE) ⇒ SCK = 24 MHz. `FUN_43E8(n)` is a real ms delay (`delay(10)` = 10 ms),
   `FUN_43B2` the µs twin.
-- **Pins.** PA5 = SCK, PA7 = MOSI (both AF_PP), PB7 = flash /CS (Out_PP, idle high), PA9 = LCD /CS
-  (+PC8 pulsed with it), PA1 = LCD RESET, **PA6 = flash MISO *and* LCD D/C**.
+- **Pins.** PA5 = SCK, PA7 = MOSI (both AF_PP), PB7 = flash /CS (Out_PP, idle high), PC3 = LCD /CS,
+  PA0 = LCD RESET, PA9 is toggled in every LCD transaction but has no board load,
+  **PA6 = flash MISO *and* LCD D/C**.
 - **PA6 ownership changes only by re-running `GPIO_Init`**: input (mode 4) at 0x1BC6, 0x1F80
   (0x1F9E), 0x2202, 0x2306, 0x250E (0x2512), and per flash burst in 0x2EA4 (0x2F26), 0x31C0
   (0x321A/0x3230/0x32F8), 0x33B8 (0x343C/0x34B4), 0x36B8 (0x36DE), 0x37D4 (0x385C); output
@@ -114,8 +115,8 @@ R[2k+6]=~b1; R[2k+7]=b2^0x51;` then compare `((~b1&0xFF)<<8)|(b2^0x51)` with the
 11. **Window inconsistency.** 0x2778 sets X 26..105 / Y 1..160 and issues RAMWR with no data
     (0x29D0-0x2A18); 0x2A20 sets X from 0 and Y+0x18 (0x2A2A/0x2A30). Module-specific, undocumented.
 12. **Unproven suspicions:** 0x4B sends address 0xFFFFFFFF instead of 0x000000 (0x1B66); opcode 0x81 is
-    Puya-specific; 0xFC 0x80 is not in the ST7735S table I can cite; SWRESET/NORON/INV/IDLE-off/
-    DISCTRL are never sent; PC8 toggles with LCD /CS for an unknown purpose.
+    Puya-specific; 0xFC 0x80 is not in a ST7735S command table that can be cited; SWRESET/NORON/INV/IDLE-off/
+    DISCTRL are never sent; PA9 is toggled in every LCD transaction but has no board load.
 
-HIGH-confidence datasheet numbers are from memory (`web_search` is unavailable here, HTTP 402): the
-ST7735S timings were not re-fetched, so MEDIUM/LOW items are leads, not findings.
+Datasheet figures in this report are quoted from memory and were not re-checked against the original
+document; MEDIUM/LOW items are leads, not findings.
